@@ -1,0 +1,42 @@
+name: Publish to AUR
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 0.1.0)'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ inputs.version }}
+
+      - name: Generate PKGBUILD
+        run: |
+          # Update version in PKGBUILD
+          sed -i "s/pkgver=.*/pkgver=${{ inputs.version }}/" PKGBUILD
+          
+          # Download source tarball and calculate sha256
+          wget "https://github.com/${{ github.repository }}/archive/v${{ inputs.version }}.tar.gz"
+          SHA256=$(sha256sum "v${{ inputs.version }}.tar.gz" | awk '{print $1}')
+          sed -i "s/sha256sums=.*/sha256sums=('$SHA256')/" PKGBUILD
+          
+          # Display PKGBUILD for verification
+          cat PKGBUILD
+
+      - name: Publish to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v2.7.0
+        with:
+          pkgname: kbd-backlight
+          pkgbuild: ./PKGBUILD
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          commit_email: ${{ secrets.AUR_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to version ${{ inputs.version }}"
+          ssh_keyscan_types: rsa,ecdsa,ed25519
