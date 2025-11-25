@@ -1,0 +1,18 @@
+[Unit]
+Description=Keyboard Backlight Daemon
+Documentation=https://github.com/yourusername/kbd-backlight
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/kbd-backlight-daemon
+Restart=on-failure
+RestartSec=5s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kbd-backlight-daemon
+
+[Install]
+WantedBy=default.target
