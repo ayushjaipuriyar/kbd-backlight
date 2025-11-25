@@ -1,0 +1,7 @@
+# Main Configuration File
+# This file contains global settings for kbd-backlight daemon
+# Individual profiles are stored in the profiles/ directory
+
+# Enable automatic profile switching based on WiFi location
+# When enabled, the daemon will switch profiles when you connect to different WiFi networks
+auto_switch_location = true

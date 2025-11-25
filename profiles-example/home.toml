@@ -1,0 +1,37 @@
+# Home Profile
+# Comfortable settings for home use
+
+name = "home"
+
+# Seconds of inactivity before turning off backlight
+idle_timeout = 30
+
+# Enable smart video detection (turns off backlight only when video is playing)
+# If false, uses traditional fullscreen detection
+video_detection_enabled = true
+
+# Keep backlight always on when connected to AC power (except during video playback)
+# Set to true if you want the backlight to stay on while plugged in
+# Set to false to respect idle timeout and rules regardless of power state
+ac_always_on = false
+
+# WiFi networks that should use this profile
+# When auto_switch_location is enabled, connecting to any of these networks
+# will automatically switch to this profile
+wifi_networks = [
+    "HomeWiFi",
+    "HomeWiFi_5GHz",
+    "HomeWiFi_Guest"
+]
+
+# Time-based brightness schedules
+# The daemon will set brightness to these values at the specified times
+[[time_schedules]]
+hour = 9
+minute = 0
+brightness = 1  # On during day
+
+[[time_schedules]]
+hour = 22
+minute = 0
+brightness = 0  # Off at night

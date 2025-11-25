@@ -1,0 +1,29 @@
+# Office Profile
+# Optimized for office environment with shorter idle timeout
+
+name = "office"
+
+# Shorter timeout in office environment
+idle_timeout = 15
+
+video_detection_enabled = true
+
+# Keep backlight on when on AC power (useful in office environment)
+ac_always_on = true
+
+# Office WiFi networks
+wifi_networks = [
+    "OfficeNetwork",
+    "OfficeNetwork_5G"
+]
+
+# Work hours schedule
+[[time_schedules]]
+hour = 8
+minute = 0
+brightness = 1  # On during work hours
+
+[[time_schedules]]
+hour = 18
+minute = 0
+brightness = 0  # Off after work

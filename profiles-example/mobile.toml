@@ -1,0 +1,24 @@
+# Mobile Profile
+# Maximum battery saving with very aggressive idle timeout
+
+name = "mobile"
+
+# Very aggressive idle timeout for battery saving
+idle_timeout = 5
+
+video_detection_enabled = true
+
+# Never keep backlight on when on AC (maximize battery life)
+ac_always_on = false
+
+# Coffee shop or public WiFi networks
+wifi_networks = [
+    "CoffeeShop_Guest",
+    "Airport_WiFi"
+]
+
+# Always off by default, only on when actively typing
+[[time_schedules]]
+hour = 0
+minute = 0
+brightness = 0
