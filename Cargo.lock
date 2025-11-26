@@ -660,7 +660,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
- "nix 0.27.1",
+ "nix",
  "proptest",
  "regex",
  "serde",
@@ -727,17 +727,6 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "nix"
-version = "0.27.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2eb04e9c688eff1c89d72b407f168cf79bb9e867a9d3323ed6c01519eb9cc053"
-dependencies = [
- "bitflags",
- "cfg-if",
- "libc",
 ]
 
 [[package]]
@@ -1848,7 +1837,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "hex",
- "nix 0.29.0",
+ "nix",
  "ordered-stream",
  "rand 0.8.5",
  "serde",
