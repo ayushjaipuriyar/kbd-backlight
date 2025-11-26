@@ -81,6 +81,7 @@ impl IdleMonitor {
 
     /// Get idle time by checking /dev/input/ device activity
     /// This works on both X11 and Wayland
+    #[allow(dead_code)]
     fn get_idle_time_sysfs(&self) -> Result<Duration> {
         // Try /dev/input/event* devices first (more reliable)
         if let Ok(idle) = self.get_idle_time_from_dev_input() {
@@ -150,6 +151,7 @@ impl IdleMonitor {
 
     /// Get idle time from /dev/input/event* devices
     /// This is more accurate than sysfs timestamps
+    #[allow(dead_code)]
     fn get_idle_time_from_dev_input(&self) -> Result<Duration> {
         let dev_input = Path::new("/dev/input");
 

@@ -16,6 +16,7 @@ use wayrs_utils::seats::{SeatHandler, Seats};
 pub struct WaylandIdleDetector {
     is_idle: Arc<Mutex<bool>>,
     last_activity: Arc<Mutex<Instant>>,
+    #[allow(dead_code)]
     timeout_seconds: u64,
 }
 
@@ -58,7 +59,7 @@ impl WaylandIdleDetector {
         let mut state = IdleState {
             is_idle: Arc::clone(&is_idle),
             last_activity: Arc::clone(&last_activity),
-            seats: Seats::bind(&mut conn),
+            seats: Seats::new(&mut conn),
             seat_names: HashMap::default(),
         };
 
