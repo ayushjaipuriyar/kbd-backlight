@@ -213,7 +213,25 @@ sudo usermod -aG input $USER
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for development setup and guidelines.
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) and automated semantic versioning. Commit messages must follow the format:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+
+Examples:
+- `feat: add WiFi-based profile switching`
+- `fix: resolve file descriptor leak in idle detection`
+- `docs: update installation instructions`
+- `feat!: change config file format` (breaking change)
 
 ## License
 

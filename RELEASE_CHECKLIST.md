@@ -30,6 +30,9 @@ Use this checklist before creating the first release.
 - [x] Verify LICENSE file is correct
 - [x] Add Dependabot configuration
 - [x] Add CI/CD badges to README
+- [x] Configure semantic-release for automated versioning
+- [x] Add commitlint for conventional commit validation
+- [x] Create SEMANTIC_RELEASE.md documentation
 
 ### GitHub Configuration
 - [x] Repository created on GitHub
@@ -50,52 +53,68 @@ Use this checklist before creating the first release.
 
 ## Release Process
 
-### Version 0.1.0
+### Automated Semantic Release (Recommended)
+
+This project uses automated semantic versioning. See [SEMANTIC_RELEASE.md](SEMANTIC_RELEASE.md) for details.
+
+1. **Make Changes with Conventional Commits**
+   ```bash
+   # Feature (minor bump)
+   git commit -m "feat: add new feature"
+   
+   # Bug fix (patch bump)
+   git commit -m "fix: resolve issue"
+   
+   # Breaking change (major bump)
+   git commit -m "feat!: breaking change"
+   ```
+
+2. **Push to Main**
+   ```bash
+   git push origin main
+   ```
+
+3. **Automatic Process**
+   - Semantic Release analyzes commits
+   - Determines next version automatically
+   - Updates CHANGELOG.md
+   - Updates Cargo.toml and PKGBUILD
+   - Creates git tag
+   - Creates GitHub release
+   - Triggers build workflow
+   - Publishes to AUR
+
+4. **Verify Release**
+   - Go to Actions tab
+   - Verify Semantic Release workflow passes
+   - Verify Release workflow runs
+   - Check GitHub release created
+   - Download and test release binaries
+   - Verify AUR package updated
+
+### Manual Release (Emergency Only)
+
+Only use if semantic-release fails:
 
 1. **Update Version**
    ```bash
-   # Update Cargo.toml
-   sed -i 's/version = "0.1.0"/version = "0.1.0"/' Cargo.toml
-   
-   # Verify
-   grep version Cargo.toml
+   sed -i 's/version = "0.1.0"/version = "0.2.0"/' Cargo.toml
+   sed -i 's/pkgver=0.1.0/pkgver=0.2.0/' PKGBUILD
    ```
 
 2. **Update Changelog**
    ```bash
-   # Edit CHANGELOG.md
-   # Change [Unreleased] to [0.1.0] - 2025-11-25
-   # Add release notes
+   # Manually edit CHANGELOG.md
    ```
 
-3. **Commit Changes**
+3. **Commit and Tag**
    ```bash
-   git add Cargo.toml CHANGELOG.md
-   git commit -m "chore: prepare release 0.1.0"
-   ```
-
-4. **Create Tag**
-   ```bash
-   git tag -a v0.1.0 -m "Release version 0.1.0"
-   ```
-
-5. **Push to GitHub**
-   ```bash
+   git add Cargo.toml PKGBUILD CHANGELOG.md
+   git commit -m "chore(release): 0.2.0 [skip ci]"
+   git tag v0.2.0
    git push origin main
-   git push origin v0.1.0
+   git push origin v0.2.0
    ```
-
-6. **Verify GitHub Actions**
-   - Go to Actions tab
-   - Verify CI workflow passes
-   - Verify Release workflow runs
-   - Check that release is created
-   - Download and test release binaries
-
-7. **Verify AUR Package**
-   - Check AUR repository updated
-   - Test installation: `yay -S kbd-backlight`
-   - Verify service starts: `systemctl --user status kbd-backlight-daemon`
 
 ## Post-Release
 
@@ -175,14 +194,19 @@ If issues are discovered after release:
 
 ## Future Releases
 
-For subsequent releases (0.2.0, 0.3.0, etc.):
+With semantic-release, future releases are automatic:
 
-1. Update version in Cargo.toml
-2. Update CHANGELOG.md
-3. Commit: `git commit -m "chore: bump version to X.Y.Z"`
-4. Tag: `git tag vX.Y.Z`
-5. Push: `git push origin main && git push origin vX.Y.Z`
-6. GitHub Actions handles the rest
+1. Make changes with conventional commits
+2. Push to main
+3. Semantic Release handles everything
+
+**Commit Types:**
+- `feat:` → Minor version bump (0.1.0 → 0.2.0)
+- `fix:` → Patch version bump (0.1.0 → 0.1.1)
+- `feat!:` or `BREAKING CHANGE:` → Major version bump (0.1.0 → 1.0.0)
+- `docs:`, `chore:`, `style:`, etc. → No release
+
+See [SEMANTIC_RELEASE.md](SEMANTIC_RELEASE.md) for complete guide.
 
 ## Notes
 
