@@ -1,11 +1,11 @@
 // IPC protocol module
 // This module handles communication between CLI and daemon
 
+use crate::{Error, Result};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
-use crate::{Error, Result};
 
 /// Default socket path for IPC communication
 pub const DEFAULT_SOCKET_PATH: &str = "/tmp/kbd-backlight-daemon.sock";
@@ -55,33 +55,45 @@ impl IpcMessage {
 
     /// Deserialize a message from JSON bytes
     pub fn deserialize(data: &[u8]) -> Result<Self> {
-        serde_json::from_slice(data)
-            .map_err(|e| {
-                let preview = if data.len() > 100 {
-                    format!("{}... ({} bytes)", String::from_utf8_lossy(&data[..100]), data.len())
-                } else {
-                    String::from_utf8_lossy(data).to_string()
-                };
-                Error::ipc_protocol(format!("Failed to deserialize message: {}. Data: {}", e, preview))
-            })
+        serde_json::from_slice(data).map_err(|e| {
+            let preview = if data.len() > 100 {
+                format!(
+                    "{}... ({} bytes)",
+                    String::from_utf8_lossy(&data[..100]),
+                    data.len()
+                )
+            } else {
+                String::from_utf8_lossy(data).to_string()
+            };
+            Error::ipc_protocol(format!(
+                "Failed to deserialize message: {}. Data: {}",
+                e, preview
+            ))
+        })
     }
 
     /// Send this message over a Unix stream
     pub async fn send(&self, stream: &mut UnixStream) -> Result<()> {
         let data = self.serialize()?;
         let len = data.len() as u32;
-        
+
         // Write length prefix (4 bytes)
-        stream.write_all(&len.to_be_bytes()).await
+        stream
+            .write_all(&len.to_be_bytes())
+            .await
             .map_err(|e| Error::ipc_protocol(format!("Failed to write message length: {}", e)))?;
-        
+
         // Write message data
-        stream.write_all(&data).await
+        stream
+            .write_all(&data)
+            .await
             .map_err(|e| Error::ipc_protocol(format!("Failed to write message data: {}", e)))?;
-        
-        stream.flush().await
+
+        stream
+            .flush()
+            .await
             .map_err(|e| Error::ipc_protocol(format!("Failed to flush stream: {}", e)))?;
-        
+
         Ok(())
     }
 
@@ -89,17 +101,18 @@ impl IpcMessage {
     pub async fn receive(stream: &mut UnixStream) -> Result<Self> {
         // Read length prefix (4 bytes)
         let mut len_bytes = [0u8; 4];
-        stream.read_exact(&mut len_bytes).await
-            .map_err(|e| {
-                if e.kind() == std::io::ErrorKind::UnexpectedEof {
-                    Error::ipc_protocol("Connection closed by peer while reading message length".to_string())
-                } else {
-                    Error::ipc_protocol(format!("Failed to read message length: {}", e))
-                }
-            })?;
-        
+        stream.read_exact(&mut len_bytes).await.map_err(|e| {
+            if e.kind() == std::io::ErrorKind::UnexpectedEof {
+                Error::ipc_protocol(
+                    "Connection closed by peer while reading message length".to_string(),
+                )
+            } else {
+                Error::ipc_protocol(format!("Failed to read message length: {}", e))
+            }
+        })?;
+
         let len = u32::from_be_bytes(len_bytes) as usize;
-        
+
         // Sanity check: reject messages larger than 1MB
         if len > 1_000_000 {
             return Err(Error::ipc_protocol(format!(
@@ -107,22 +120,26 @@ impl IpcMessage {
                 len
             )));
         }
-        
+
         if len == 0 {
-            return Err(Error::ipc_protocol("Received zero-length message".to_string()));
+            return Err(Error::ipc_protocol(
+                "Received zero-length message".to_string(),
+            ));
         }
-        
+
         // Read message data
         let mut data = vec![0u8; len];
-        stream.read_exact(&mut data).await
-            .map_err(|e| {
-                if e.kind() == std::io::ErrorKind::UnexpectedEof {
-                    Error::ipc_protocol(format!("Connection closed while reading message data (expected {} bytes)", len))
-                } else {
-                    Error::ipc_protocol(format!("Failed to read message data: {}", e))
-                }
-            })?;
-        
+        stream.read_exact(&mut data).await.map_err(|e| {
+            if e.kind() == std::io::ErrorKind::UnexpectedEof {
+                Error::ipc_protocol(format!(
+                    "Connection closed while reading message data (expected {} bytes)",
+                    len
+                ))
+            } else {
+                Error::ipc_protocol(format!("Failed to read message data: {}", e))
+            }
+        })?;
+
         Self::deserialize(&data)
     }
 }
@@ -136,33 +153,45 @@ impl IpcResponse {
 
     /// Deserialize a response from JSON bytes
     pub fn deserialize(data: &[u8]) -> Result<Self> {
-        serde_json::from_slice(data)
-            .map_err(|e| {
-                let preview = if data.len() > 100 {
-                    format!("{}... ({} bytes)", String::from_utf8_lossy(&data[..100]), data.len())
-                } else {
-                    String::from_utf8_lossy(data).to_string()
-                };
-                Error::ipc_protocol(format!("Failed to deserialize response: {}. Data: {}", e, preview))
-            })
+        serde_json::from_slice(data).map_err(|e| {
+            let preview = if data.len() > 100 {
+                format!(
+                    "{}... ({} bytes)",
+                    String::from_utf8_lossy(&data[..100]),
+                    data.len()
+                )
+            } else {
+                String::from_utf8_lossy(data).to_string()
+            };
+            Error::ipc_protocol(format!(
+                "Failed to deserialize response: {}. Data: {}",
+                e, preview
+            ))
+        })
     }
 
     /// Send this response over a Unix stream
     pub async fn send(&self, stream: &mut UnixStream) -> Result<()> {
         let data = self.serialize()?;
         let len = data.len() as u32;
-        
+
         // Write length prefix (4 bytes)
-        stream.write_all(&len.to_be_bytes()).await
+        stream
+            .write_all(&len.to_be_bytes())
+            .await
             .map_err(|e| Error::ipc_protocol(format!("Failed to write response length: {}", e)))?;
-        
+
         // Write response data
-        stream.write_all(&data).await
+        stream
+            .write_all(&data)
+            .await
             .map_err(|e| Error::ipc_protocol(format!("Failed to write response data: {}", e)))?;
-        
-        stream.flush().await
+
+        stream
+            .flush()
+            .await
             .map_err(|e| Error::ipc_protocol(format!("Failed to flush stream: {}", e)))?;
-        
+
         Ok(())
     }
 
@@ -170,17 +199,18 @@ impl IpcResponse {
     pub async fn receive(stream: &mut UnixStream) -> Result<Self> {
         // Read length prefix (4 bytes)
         let mut len_bytes = [0u8; 4];
-        stream.read_exact(&mut len_bytes).await
-            .map_err(|e| {
-                if e.kind() == std::io::ErrorKind::UnexpectedEof {
-                    Error::ipc_protocol("Connection closed by daemon while reading response length".to_string())
-                } else {
-                    Error::ipc_protocol(format!("Failed to read response length: {}", e))
-                }
-            })?;
-        
+        stream.read_exact(&mut len_bytes).await.map_err(|e| {
+            if e.kind() == std::io::ErrorKind::UnexpectedEof {
+                Error::ipc_protocol(
+                    "Connection closed by daemon while reading response length".to_string(),
+                )
+            } else {
+                Error::ipc_protocol(format!("Failed to read response length: {}", e))
+            }
+        })?;
+
         let len = u32::from_be_bytes(len_bytes) as usize;
-        
+
         // Sanity check: reject responses larger than 1MB
         if len > 1_000_000 {
             return Err(Error::ipc_protocol(format!(
@@ -188,22 +218,26 @@ impl IpcResponse {
                 len
             )));
         }
-        
+
         if len == 0 {
-            return Err(Error::ipc_protocol("Received zero-length response".to_string()));
+            return Err(Error::ipc_protocol(
+                "Received zero-length response".to_string(),
+            ));
         }
-        
+
         // Read response data
         let mut data = vec![0u8; len];
-        stream.read_exact(&mut data).await
-            .map_err(|e| {
-                if e.kind() == std::io::ErrorKind::UnexpectedEof {
-                    Error::ipc_protocol(format!("Connection closed while reading response data (expected {} bytes)", len))
-                } else {
-                    Error::ipc_protocol(format!("Failed to read response data: {}", e))
-                }
-            })?;
-        
+        stream.read_exact(&mut data).await.map_err(|e| {
+            if e.kind() == std::io::ErrorKind::UnexpectedEof {
+                Error::ipc_protocol(format!(
+                    "Connection closed while reading response data (expected {} bytes)",
+                    len
+                ))
+            } else {
+                Error::ipc_protocol(format!("Failed to read response data: {}", e))
+            }
+        })?;
+
         Self::deserialize(&data)
     }
 }
@@ -218,7 +252,7 @@ impl IpcServer {
     /// Create a new IPC server at the specified socket path
     pub async fn new<P: AsRef<Path>>(socket_path: P) -> Result<Self> {
         let socket_path = socket_path.as_ref().to_path_buf();
-        
+
         // Remove existing socket file if it exists
         if socket_path.exists() {
             std::fs::remove_file(&socket_path)
@@ -229,20 +263,19 @@ impl IpcServer {
                     ))
                 })?;
         }
-        
+
         // Ensure parent directory exists
         if let Some(parent) = socket_path.parent() {
             if !parent.exists() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| {
-                        Error::IpcSocket(format!(
-                            "Failed to create socket directory {:?}: {}",
-                            parent, e
-                        ))
-                    })?;
+                std::fs::create_dir_all(parent).map_err(|e| {
+                    Error::IpcSocket(format!(
+                        "Failed to create socket directory {:?}: {}",
+                        parent, e
+                    ))
+                })?;
             }
         }
-        
+
         // Create Unix domain socket listener
         let listener = UnixListener::bind(&socket_path)
             .map_err(|e| {
@@ -251,7 +284,7 @@ impl IpcServer {
                     socket_path, e
                 ))
             })?;
-        
+
         Ok(Self {
             listener,
             socket_path,
@@ -260,9 +293,11 @@ impl IpcServer {
 
     /// Accept a new connection and return the stream
     pub async fn accept(&self) -> Result<UnixStream> {
-        let (stream, _addr) = self.listener.accept().await
-            .map_err(|e| Error::ipc_connection(format!("Failed to accept connection: {}", e)))?;
-        
+        let (stream, _addr) =
+            self.listener.accept().await.map_err(|e| {
+                Error::ipc_connection(format!("Failed to accept connection: {}", e))
+            })?;
+
         Ok(stream)
     }
 
@@ -314,10 +349,10 @@ impl IpcClient {
                     ))
                 }
             })?;
-        
+
         // Send the message
         message.send(&mut stream).await?;
-        
+
         // Receive the response
         IpcResponse::receive(&mut stream).await
     }
@@ -347,7 +382,7 @@ mod tests {
         for msg in messages {
             let serialized = msg.serialize().expect("Failed to serialize");
             let deserialized = IpcMessage::deserialize(&serialized).expect("Failed to deserialize");
-            
+
             // Verify round-trip works by serializing again and comparing
             let reserialized = deserialized.serialize().expect("Failed to reserialize");
             assert_eq!(serialized, reserialized, "Round-trip serialization failed");
@@ -374,8 +409,9 @@ mod tests {
 
         for resp in responses {
             let serialized = resp.serialize().expect("Failed to serialize");
-            let deserialized = IpcResponse::deserialize(&serialized).expect("Failed to deserialize");
-            
+            let deserialized =
+                IpcResponse::deserialize(&serialized).expect("Failed to deserialize");
+
             // Verify round-trip works by serializing again and comparing
             let reserialized = deserialized.serialize().expect("Failed to reserialize");
             assert_eq!(serialized, reserialized, "Round-trip serialization failed");
@@ -385,11 +421,13 @@ mod tests {
     #[tokio::test]
     async fn test_ipc_server_creation() {
         use tempfile::TempDir;
-        
+
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let socket_path = temp_dir.path().join("test.sock");
-        
-        let server = IpcServer::new(&socket_path).await.expect("Failed to create server");
+
+        let server = IpcServer::new(&socket_path)
+            .await
+            .expect("Failed to create server");
         assert_eq!(server.socket_path(), socket_path);
         assert!(socket_path.exists(), "Socket file should exist");
     }
@@ -398,18 +436,22 @@ mod tests {
     async fn test_ipc_client_server_communication() {
         use tempfile::TempDir;
         use tokio::time::{timeout, Duration};
-        
+
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let socket_path = temp_dir.path().join("test.sock");
-        
-        let server = IpcServer::new(&socket_path).await.expect("Failed to create server");
+
+        let server = IpcServer::new(&socket_path)
+            .await
+            .expect("Failed to create server");
         let client = IpcClient::new(&socket_path);
-        
+
         // Spawn server task
         let server_task = tokio::spawn(async move {
             let mut stream = server.accept().await.expect("Failed to accept connection");
-            let message = IpcMessage::receive(&mut stream).await.expect("Failed to receive message");
-            
+            let message = IpcMessage::receive(&mut stream)
+                .await
+                .expect("Failed to receive message");
+
             // Echo back a response based on the message
             let response = match message {
                 IpcMessage::GetStatus => IpcResponse::Status(StatusInfo {
@@ -421,20 +463,23 @@ mod tests {
                 }),
                 _ => IpcResponse::Ok,
             };
-            
-            response.send(&mut stream).await.expect("Failed to send response");
+
+            response
+                .send(&mut stream)
+                .await
+                .expect("Failed to send response");
         });
-        
+
         // Give server time to start
         tokio::time::sleep(Duration::from_millis(10)).await;
-        
+
         // Send message from client
         let message = IpcMessage::GetStatus;
         let response = timeout(Duration::from_secs(1), client.send_message(&message))
             .await
             .expect("Timeout waiting for response")
             .expect("Failed to send message");
-        
+
         // Verify response
         match response {
             IpcResponse::Status(info) => {
@@ -443,7 +488,7 @@ mod tests {
             }
             _ => panic!("Expected Status response"),
         }
-        
+
         server_task.await.expect("Server task failed");
     }
 }

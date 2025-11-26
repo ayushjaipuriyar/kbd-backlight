@@ -1,18 +1,18 @@
 // Daemon main entry point
 // This will orchestrate all components and run the main event loop
 
+use chrono::Local;
 use kbd_backlight::{
     brightness::BrightnessController,
     config::Config,
     ipc::{IpcMessage, IpcResponse, IpcServer, StatusInfo, DEFAULT_SOCKET_PATH},
-    monitors::{FullscreenMonitor, IdleMonitor},
-    rules::{RuleEngine, SystemContext},
     location::LocationDetector,
+    monitors::{FullscreenMonitor, IdleMonitor},
     power::{PowerDetector, PowerState},
+    rules::{RuleEngine, SystemContext},
     video_detector::VideoDetector,
     Result,
 };
-use chrono::Local;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use tokio::signal;
@@ -193,7 +193,10 @@ impl Daemon {
         self.check_location_profile_switch();
 
         // Get current power state
-        let power_state = self.power_detector.get_power_state().unwrap_or(PowerState::Unknown);
+        let power_state = self
+            .power_detector
+            .get_power_state()
+            .unwrap_or(PowerState::Unknown);
 
         // Get profile idle timeout
         let config = self.config.read().unwrap();
@@ -271,7 +274,11 @@ impl Daemon {
             // Optional AC power handling (disabled by default):
             // - If ac_always_on is enabled: Keep brightness at 1 when on AC (except during video or manual override)
             // - If disabled: Respect all rules regardless of power state
-            if ac_always_on && power_state == PowerState::AC && !is_video_playing && !has_manual_override {
+            if ac_always_on
+                && power_state == PowerState::AC
+                && !is_video_playing
+                && !has_manual_override
+            {
                 brightness = 1;
             }
 
@@ -298,36 +305,38 @@ impl Daemon {
         // Get current SSID
         if let Ok(Some(ssid)) = self.location_detector.get_current_ssid() {
             let mut last_ssid = self.last_ssid.write().unwrap();
-            
+
             // Only switch if SSID changed
             if last_ssid.as_ref() != Some(&ssid) {
                 // Build location mappings from profiles
                 let location_mappings = config.build_location_mappings();
-                
+
                 // Check if we have a mapping for this SSID
                 if let Some(profile_name) = location_mappings.get(&ssid).cloned() {
                     if profile_name != config.active_profile {
                         let old_profile = config.active_profile.clone();
                         drop(config);
                         drop(last_ssid);
-                        
+
                         // Switch profile
                         let mut config = self.config.write().unwrap();
                         config.active_profile = profile_name.clone();
-                        
-                        println!("Location changed: {} -> Switching profile: {} -> {}", 
-                                 ssid, old_profile, profile_name);
-                        
+
+                        println!(
+                            "Location changed: {} -> Switching profile: {} -> {}",
+                            ssid, old_profile, profile_name
+                        );
+
                         // Save active profile state
                         let _ = config.save_active_profile();
                         drop(config);
-                        
+
                         // Update last SSID
                         *self.last_ssid.write().unwrap() = Some(ssid);
                         return;
                     }
                 }
-                
+
                 *last_ssid = Some(ssid);
             }
         }
@@ -336,15 +345,23 @@ impl Daemon {
     /// Force immediate rule evaluation and brightness application
     fn force_rule_evaluation(&mut self) -> Result<()> {
         // Check idle state with error handling
-        let is_idle = self.idle_monitor.read().unwrap().is_idle().unwrap_or_else(|e| {
-            eprintln!("Warning: Idle detection failed: {}. Assuming not idle.", e);
-            false
-        });
+        let is_idle = self
+            .idle_monitor
+            .read()
+            .unwrap()
+            .is_idle()
+            .unwrap_or_else(|e| {
+                eprintln!("Warning: Idle detection failed: {}. Assuming not idle.", e);
+                false
+            });
 
         // Check fullscreen state with graceful degradation
         let is_fullscreen = if let Some(ref monitor) = self.fullscreen_monitor {
             monitor.is_fullscreen_active().unwrap_or_else(|e| {
-                eprintln!("Warning: Fullscreen detection failed: {}. Assuming not fullscreen.", e);
+                eprintln!(
+                    "Warning: Fullscreen detection failed: {}. Assuming not fullscreen.",
+                    e
+                );
                 false
             })
         } else {
@@ -449,7 +466,9 @@ impl Daemon {
                 // Validate brightness range
                 let max_brightness = match self.brightness_controller.get_max_brightness() {
                     Ok(max) => max,
-                    Err(e) => return IpcResponse::Error(format!("Failed to get max brightness: {}", e)),
+                    Err(e) => {
+                        return IpcResponse::Error(format!("Failed to get max brightness: {}", e))
+                    }
                 };
 
                 if brightness > max_brightness {
@@ -460,7 +479,10 @@ impl Daemon {
                 }
 
                 // Set manual override
-                self.rule_engine.write().unwrap().set_manual_override(Some(brightness));
+                self.rule_engine
+                    .write()
+                    .unwrap()
+                    .set_manual_override(Some(brightness));
 
                 // Apply immediately
                 if let Err(e) = self.brightness_controller.set_brightness(brightness) {
@@ -502,11 +524,12 @@ impl Daemon {
 
                 // Check if profile exists
                 if let Some(prof) = config.profiles.get_mut(&profile) {
-                    prof.time_schedules.push(kbd_backlight::config::TimeSchedule {
-                        hour,
-                        minute,
-                        brightness,
-                    });
+                    prof.time_schedules
+                        .push(kbd_backlight::config::TimeSchedule {
+                            hour,
+                            minute,
+                            brightness,
+                        });
 
                     // Save profile to its file
                     if let Err(e) = config.save_profile(&profile) {
@@ -535,7 +558,8 @@ impl Daemon {
         #[cfg(unix)]
         {
             use tokio::signal::unix::{signal, SignalKind};
-            let mut sigterm = signal(SignalKind::terminate()).expect("Failed to setup SIGTERM handler");
+            let mut sigterm =
+                signal(SignalKind::terminate()).expect("Failed to setup SIGTERM handler");
             sigterm.recv().await;
         }
 

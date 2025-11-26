@@ -1,9 +1,9 @@
 // Rule engine module
 // This module evaluates rules and determines appropriate brightness levels
 
-use std::sync::{Arc, RwLock};
-use chrono::{DateTime, Local, Timelike};
 use crate::config::{Config, TimeSchedule};
+use chrono::{DateTime, Local, Timelike};
+use std::sync::{Arc, RwLock};
 
 pub struct RuleEngine {
     config: Arc<RwLock<Config>>,
@@ -33,7 +33,7 @@ impl RuleEngine {
     }
 
     /// Evaluate all rules and determine the appropriate brightness level
-    /// 
+    ///
     /// Rule Priority (highest to lowest):
     /// 1. Manual override
     /// 2. Fullscreen detection (brightness = 0)
@@ -78,13 +78,13 @@ impl RuleEngine {
 
         // Find the most recent time schedule rule
         let current_minutes = context.current_time.hour() * 60 + context.current_time.minute();
-        
+
         let mut applicable_schedule: Option<&TimeSchedule> = None;
         let mut best_minutes: Option<u32> = None;
 
         for schedule in &profile.time_schedules {
             let schedule_minutes = schedule.hour as u32 * 60 + schedule.minute as u32;
-            
+
             // Only consider schedules that have already occurred today
             if schedule_minutes <= current_minutes {
                 // If this is the first applicable schedule or it's more recent than the current best
@@ -103,8 +103,8 @@ impl RuleEngine {
 mod tests {
     use super::*;
     use crate::config::{Config, LocationProfile, TimeSchedule};
-    use std::collections::HashMap;
     use chrono::Local;
+    use std::collections::HashMap;
 
     fn create_test_config() -> Arc<RwLock<Config>> {
         let mut profiles = HashMap::new();
@@ -317,39 +317,35 @@ mod tests {
     #[test]
     fn test_profile_specific_rules() {
         let mut profiles = HashMap::new();
-        
+
         // Home profile with one schedule
         profiles.insert(
             "home".to_string(),
             LocationProfile {
                 name: "home".to_string(),
                 idle_timeout: 10,
-                time_schedules: vec![
-                    TimeSchedule {
-                        hour: 9,
-                        minute: 0,
-                        brightness: 2,
-                    },
-                ],
+                time_schedules: vec![TimeSchedule {
+                    hour: 9,
+                    minute: 0,
+                    brightness: 2,
+                }],
                 video_detection_enabled: true,
                 wifi_networks: vec![],
                 ac_always_on: false,
             },
         );
-        
+
         // Office profile with different schedule
         profiles.insert(
             "office".to_string(),
             LocationProfile {
                 name: "office".to_string(),
                 idle_timeout: 5,
-                time_schedules: vec![
-                    TimeSchedule {
-                        hour: 9,
-                        minute: 0,
-                        brightness: 3,
-                    },
-                ],
+                time_schedules: vec![TimeSchedule {
+                    hour: 9,
+                    minute: 0,
+                    brightness: 3,
+                }],
                 video_detection_enabled: true,
                 wifi_networks: vec![],
                 ac_always_on: false,
@@ -363,15 +359,15 @@ mod tests {
         }));
 
         let engine = RuleEngine::new(Arc::clone(&config));
-        
+
         // At 10:00 with home profile, should get brightness 2
         let context = create_context(false, false, 10, 0);
         let decision = engine.evaluate(&context);
         assert_eq!(decision, BrightnessDecision::SetBrightness(2));
-        
+
         // Switch to office profile
         config.write().unwrap().active_profile = "office".to_string();
-        
+
         // At 10:00 with office profile, should get brightness 3
         let context = create_context(false, false, 10, 0);
         let decision = engine.evaluate(&context);
@@ -381,44 +377,50 @@ mod tests {
     #[test]
     fn test_multiple_independent_profiles() {
         let mut profiles = HashMap::new();
-        
+
         // Create three different profiles with distinct settings
         profiles.insert(
             "home".to_string(),
             LocationProfile {
                 name: "home".to_string(),
                 idle_timeout: 10,
-                time_schedules: vec![
-                    TimeSchedule { hour: 9, minute: 0, brightness: 1 },
-                ],
+                time_schedules: vec![TimeSchedule {
+                    hour: 9,
+                    minute: 0,
+                    brightness: 1,
+                }],
                 video_detection_enabled: true,
                 wifi_networks: vec![],
                 ac_always_on: false,
             },
         );
-        
+
         profiles.insert(
             "office".to_string(),
             LocationProfile {
                 name: "office".to_string(),
                 idle_timeout: 5,
-                time_schedules: vec![
-                    TimeSchedule { hour: 9, minute: 0, brightness: 2 },
-                ],
+                time_schedules: vec![TimeSchedule {
+                    hour: 9,
+                    minute: 0,
+                    brightness: 2,
+                }],
                 video_detection_enabled: true,
                 wifi_networks: vec![],
                 ac_always_on: false,
             },
         );
-        
+
         profiles.insert(
             "travel".to_string(),
             LocationProfile {
                 name: "travel".to_string(),
                 idle_timeout: 15,
-                time_schedules: vec![
-                    TimeSchedule { hour: 9, minute: 0, brightness: 3 },
-                ],
+                time_schedules: vec![TimeSchedule {
+                    hour: 9,
+                    minute: 0,
+                    brightness: 3,
+                }],
                 video_detection_enabled: true,
                 wifi_networks: vec![],
                 ac_always_on: false,
@@ -433,22 +435,22 @@ mod tests {
 
         let engine = RuleEngine::new(Arc::clone(&config));
         let context = create_context(false, false, 10, 0);
-        
+
         // Test home profile
         config.write().unwrap().active_profile = "home".to_string();
         let decision = engine.evaluate(&context);
         assert_eq!(decision, BrightnessDecision::SetBrightness(1));
-        
+
         // Test office profile
         config.write().unwrap().active_profile = "office".to_string();
         let decision = engine.evaluate(&context);
         assert_eq!(decision, BrightnessDecision::SetBrightness(2));
-        
+
         // Test travel profile
         config.write().unwrap().active_profile = "travel".to_string();
         let decision = engine.evaluate(&context);
         assert_eq!(decision, BrightnessDecision::SetBrightness(3));
-        
+
         // Verify switching back to home still works
         config.write().unwrap().active_profile = "home".to_string();
         let decision = engine.evaluate(&context);

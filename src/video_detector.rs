@@ -1,6 +1,6 @@
 // Video playback detection using MPRIS D-Bus interface
+use crate::{Error, Result};
 use zbus::{Connection, Result as ZbusResult};
-use crate::{Result, Error};
 
 pub struct VideoDetector {
     conn: Connection,
@@ -8,12 +8,11 @@ pub struct VideoDetector {
 
 impl VideoDetector {
     pub async fn new() -> Result<Self> {
-        let conn = Connection::session().await
-            .map_err(|e| {
-                eprintln!("VideoDetector: Failed to connect to D-Bus session: {}", e);
-                Error::ipc_connection(format!("Failed to connect to D-Bus: {}", e))
-            })?;
-        
+        let conn = Connection::session().await.map_err(|e| {
+            eprintln!("VideoDetector: Failed to connect to D-Bus session: {}", e);
+            Error::ipc_connection(format!("Failed to connect to D-Bus: {}", e))
+        })?;
+
         eprintln!("VideoDetector: Successfully connected to D-Bus");
         Ok(Self { conn })
     }
@@ -22,7 +21,7 @@ impl VideoDetector {
     pub async fn is_video_playing(&self) -> Result<bool> {
         // List all MPRIS media players
         let players = self.list_media_players().await?;
-        
+
         if players.is_empty() {
             return Ok(false);
         }
@@ -40,10 +39,13 @@ impl VideoDetector {
     }
 
     async fn list_media_players(&self) -> Result<Vec<String>> {
-        let proxy = zbus::fdo::DBusProxy::new(&self.conn).await
+        let proxy = zbus::fdo::DBusProxy::new(&self.conn)
+            .await
             .map_err(|e| Error::ipc_protocol(format!("Failed to create D-Bus proxy: {}", e)))?;
 
-        let names = proxy.list_names().await
+        let names = proxy
+            .list_names()
+            .await
             .map_err(|e| Error::ipc_protocol(format!("Failed to list D-Bus names: {}", e)))?;
 
         Ok(names
@@ -59,13 +61,13 @@ impl VideoDetector {
             service_name,
             "/org/mpris/MediaPlayer2",
             "org.freedesktop.DBus.Properties",
-        ).await
+        )
+        .await
         .map_err(|e| Error::ipc_protocol(format!("Failed to create proxy: {}", e)))?;
 
-        let status: ZbusResult<zbus::zvariant::OwnedValue> = proxy.call(
-            "Get",
-            &("org.mpris.MediaPlayer2.Player", "PlaybackStatus"),
-        ).await;
+        let status: ZbusResult<zbus::zvariant::OwnedValue> = proxy
+            .call("Get", &("org.mpris.MediaPlayer2.Player", "PlaybackStatus"))
+            .await;
 
         match status {
             Ok(value) => {
@@ -80,7 +82,10 @@ impl VideoDetector {
                     Ok("Stopped".to_string())
                 }
             }
-            Err(e) => Err(Error::ipc_protocol(format!("Failed to get playback status: {}", e))),
+            Err(e) => Err(Error::ipc_protocol(format!(
+                "Failed to get playback status: {}",
+                e
+            ))),
         }
     }
 }
