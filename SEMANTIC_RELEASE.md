@@ -4,15 +4,20 @@ This project uses automated semantic versioning and release management based on 
 
 ## How It Works
 
+This project uses `semantic-release-cargo` which integrates Rust/Cargo projects with semantic-release.
+
 1. **Commit with conventional format** - All commits must follow the conventional commit format
 2. **Push to main** - When commits are pushed to the `main` branch
-3. **Automated analysis** - Semantic Release analyzes commit messages
-4. **Version bump** - Automatically determines the next version number
-5. **Changelog generation** - Updates CHANGELOG.md with release notes
-6. **File updates** - Updates version in Cargo.toml and PKGBUILD
-7. **Git tag creation** - Creates a new git tag (e.g., v0.2.0)
-8. **GitHub release** - Creates a GitHub release with notes
-9. **Build & publish** - Triggers the release workflow to build binaries and publish to AUR
+3. **Get next version** - Analyzes commits to determine the next version
+4. **Build binaries** - Compiles release binaries for x86_64 and aarch64 with correct version
+5. **Semantic release** - Runs semantic-release which:
+   - Updates CHANGELOG.md with release notes
+   - Updates version in Cargo.toml (via semantic-release-cargo)
+   - Updates version in PKGBUILD
+   - Creates git tag (e.g., v0.2.0)
+   - Creates GitHub release with compiled binaries
+   - Optionally publishes to crates.io (if CARGO_REGISTRY_TOKEN is set)
+6. **Publish to AUR** - Updates the AUR package automatically
 
 ## Commit Message Format
 
@@ -223,7 +228,25 @@ Ensure:
 - Semantic Release has write permissions
 - No merge conflicts in CHANGELOG.md
 
+## Publishing to Crates.io (Optional)
+
+To enable automatic publishing to crates.io:
+
+1. Generate a crates.io API token at https://crates.io/me
+2. Add it as a GitHub secret named `CARGO_REGISTRY_TOKEN`
+3. The release workflow will automatically publish to crates.io
+
+If you don't want to publish to crates.io, simply don't set the `CARGO_REGISTRY_TOKEN` secret.
+
 ## Tools
+
+### semantic-release-cargo
+
+This project uses `@semantic-release-cargo/semantic-release-cargo` which:
+- Updates Cargo.toml version automatically
+- Optionally publishes to crates.io
+- Integrates seamlessly with semantic-release
+- Supports cross-compilation for release binaries
 
 ### Commitizen (Optional)
 

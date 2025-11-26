@@ -126,10 +126,11 @@
                 "changelogTitle": "# Changelog\n\nAll notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines."
             }
         ],
+        "@semantic-release-cargo/semantic-release-cargo",
         [
             "@semantic-release/exec",
             {
-                "prepareCmd": "sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' Cargo.toml && sed -i 's/^pkgver=.*/pkgver=${nextRelease.version}/' PKGBUILD"
+                "prepareCmd": "sed -i 's/^pkgver=.*/pkgver=${nextRelease.version}/' PKGBUILD"
             }
         ],
         [

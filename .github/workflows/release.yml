@@ -2,38 +2,23 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 permissions:
   contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      version: ${{ steps.get_version.outputs.version }}
-    steps:
-      - name: Get version from tag
-        id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+  get-next-version:
+    name: Get Next Version
+    uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@v4
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
-  build-release:
-    name: Build Release
-    needs: create-release
+  build-binaries:
+    name: Build Release Binaries
+    needs: get-next-version
+    if: needs.get-next-version.outputs.new-release-published == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -44,18 +29,24 @@ jobs:
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             artifact_name: kbd-backlight-linux-aarch64
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libdbus-1-dev libwayland-dev libx11-dev libxss-dev
 
-      - name: Install Rust
+      - name: Install semantic-release-cargo
+        uses: taiki-e/install-action@v2
+        with:
+          tool: semantic-release-cargo@2
+
+      - name: Prepare semantic-release for Rust
+        run: semantic-release-cargo prepare ${{ needs.get-next-version.outputs.new-release-version }}
+
+      - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -66,7 +57,7 @@ jobs:
           sudo apt-get install -y gcc-aarch64-linux-gnu
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
-      - name: Build
+      - name: Build release binaries
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Create tarball
@@ -78,23 +69,114 @@ jobs:
           cp README.md LICENSE release/
           tar -czf ${{ matrix.artifact_name }}.tar.gz -C release .
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./${{ matrix.artifact_name }}.tar.gz
-          asset_name: ${{ matrix.artifact_name }}.tar.gz
-          asset_content_type: application/gzip
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}.tar.gz
 
-  publish-aur:
-    name: Publish to AUR
-    needs: [create-release, build-release]
+  release:
+    name: Create Release
+    needs: [get-next-version, build-binaries]
+    if: needs.get-next-version.outputs.new-release-published == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev libwayland-dev libx11-dev libxss-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install semantic-release dependencies
+        run: |
+          npm install --save-dev \
+            semantic-release \
+            @semantic-release/changelog \
+            @semantic-release/git \
+            @semantic-release/exec \
+            @semantic-release/github \
+            @semantic-release-cargo/semantic-release-cargo \
+            conventional-changelog-conventionalcommits
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -name "*.tar.gz" -exec cp {} release-assets/ \;
+          ls -la release-assets/
+
+      - name: Run Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          # Update GitHub plugin config to include binaries
+          cat > .releaserc.release.json << 'EOF'
+          {
+            "branches": ["main"],
+            "plugins": [
+              "@semantic-release/commit-analyzer",
+              "@semantic-release/release-notes-generator",
+              [
+                "@semantic-release/changelog",
+                {
+                  "changelogFile": "CHANGELOG.md"
+                }
+              ],
+              "@semantic-release-cargo/semantic-release-cargo",
+              [
+                "@semantic-release/exec",
+                {
+                  "prepareCmd": "sed -i 's/^pkgver=.*/pkgver=${nextRelease.version}/' PKGBUILD"
+                }
+              ],
+              [
+                "@semantic-release/git",
+                {
+                  "assets": ["CHANGELOG.md", "Cargo.toml", "Cargo.lock", "PKGBUILD"],
+                  "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+                }
+              ],
+              [
+                "@semantic-release/github",
+                {
+                  "assets": [
+                    {"path": "release-assets/*.tar.gz"}
+                  ]
+                }
+              ]
+            ]
+          }
+          EOF
+          npx semantic-release -e .releaserc.release.json
+
+  publish-aur:
+    name: Publish to AUR
+    needs: [get-next-version, release]
+    if: needs.get-next-version.outputs.new-release-published == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Publish to AUR
         uses: KSXGitHub/github-actions-deploy-aur@v2.7.0
@@ -104,4 +186,4 @@ jobs:
           commit_username: ${{ secrets.AUR_USERNAME }}
           commit_email: ${{ secrets.AUR_EMAIL }}
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to version ${{ needs.create-release.outputs.version }}"
+          commit_message: "Update to version ${{ needs.get-next-version.outputs.new-release-version }}"

@@ -45,6 +45,7 @@ Use this checklist before creating the first release.
 - [x] `AUR_USERNAME` - Your AUR username
 - [x] `AUR_EMAIL` - Your AUR email  
 - [x] `AUR_SSH_PRIVATE_KEY` - SSH key for AUR access
+- [ ] `CARGO_REGISTRY_TOKEN` - (Optional) For publishing to crates.io
 
 ### AUR Setup
 - [ ] AUR account created
