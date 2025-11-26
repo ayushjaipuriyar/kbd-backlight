@@ -1,11 +1,11 @@
 // Configuration management module
 // This module will handle loading, validation, and persistence of configuration
 
+use crate::{Error, Result};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
-use crate::{Error, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -47,7 +47,7 @@ impl Config {
     pub fn load() -> Result<Self> {
         let config_dir = Self::get_config_dir();
         let config_path = config_dir.join("config.toml");
-        
+
         // Create default configuration if it doesn't exist
         if !config_path.exists() {
             let default_config = Self::default();
@@ -56,95 +56,105 @@ impl Config {
         }
 
         // Load main config.toml
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| {
-                Error::config_error(
-                    config_path.display().to_string(),
-                    format!("Failed to read config file: {}", e)
-                )
-            })?;
-        
-        let mut config: Config = toml::from_str(&content)
-            .map_err(|e| {
-                let error_msg = e.to_string();
-                if error_msg.contains("line") {
-                    Error::ConfigSyntax(format!("TOML syntax error in {}: {}", config_path.display(), error_msg))
-                } else {
-                    Error::ConfigSyntax(format!("Failed to parse config file {}: {}", config_path.display(), error_msg))
-                }
-            })?;
-        
+        let content = fs::read_to_string(&config_path).map_err(|e| {
+            Error::config_error(
+                config_path.display().to_string(),
+                format!("Failed to read config file: {}", e),
+            )
+        })?;
+
+        let mut config: Config = toml::from_str(&content).map_err(|e| {
+            let error_msg = e.to_string();
+            if error_msg.contains("line") {
+                Error::ConfigSyntax(format!(
+                    "TOML syntax error in {}: {}",
+                    config_path.display(),
+                    error_msg
+                ))
+            } else {
+                Error::ConfigSyntax(format!(
+                    "Failed to parse config file {}: {}",
+                    config_path.display(),
+                    error_msg
+                ))
+            }
+        })?;
+
         // Load all profile files from profiles/ directory
         config.profiles = Self::load_profiles(&config_dir)?;
-        
+
         // Load active profile from state file
         config.active_profile = Self::load_active_profile(&config_dir)?;
-        
+
         config.validate()?;
         Ok(config)
     }
-    
+
     /// Load all profile files from the profiles directory
     fn load_profiles(config_dir: &PathBuf) -> Result<HashMap<String, LocationProfile>> {
         let profiles_dir = config_dir.join("profiles");
-        
+
         // Create profiles directory if it doesn't exist
         if !profiles_dir.exists() {
-            fs::create_dir_all(&profiles_dir)
-                .map_err(|e| {
-                    Error::config_error(
-                        profiles_dir.display().to_string(),
-                        format!("Failed to create profiles directory: {}", e)
-                    )
-                })?;
-        }
-        
-        let mut profiles = HashMap::new();
-        let mut seen_names = HashSet::new();
-        
-        // Read all .toml files in profiles directory
-        let entries = fs::read_dir(&profiles_dir)
-            .map_err(|e| {
+            fs::create_dir_all(&profiles_dir).map_err(|e| {
                 Error::config_error(
                     profiles_dir.display().to_string(),
-                    format!("Failed to read profiles directory: {}", e)
+                    format!("Failed to create profiles directory: {}", e),
                 )
             })?;
-        
+        }
+
+        let mut profiles = HashMap::new();
+        let mut seen_names = HashSet::new();
+
+        // Read all .toml files in profiles directory
+        let entries = fs::read_dir(&profiles_dir).map_err(|e| {
+            Error::config_error(
+                profiles_dir.display().to_string(),
+                format!("Failed to read profiles directory: {}", e),
+            )
+        })?;
+
         for entry in entries {
             let entry = entry.map_err(|e| {
                 Error::config_error(
                     profiles_dir.display().to_string(),
-                    format!("Failed to read directory entry: {}", e)
+                    format!("Failed to read directory entry: {}", e),
                 )
             })?;
-            
+
             let path = entry.path();
-            
+
             // Skip non-files and non-.toml files
             if !path.is_file() || path.extension().and_then(|s| s.to_str()) != Some("toml") {
                 continue;
             }
-            
+
             // Load profile
-            let content = fs::read_to_string(&path)
-                .map_err(|e| {
-                    Error::config_error(
-                        path.display().to_string(),
-                        format!("Failed to read profile file: {}", e)
-                    )
-                })?;
-            
-            let profile: LocationProfile = toml::from_str(&content)
-                .map_err(|e| {
-                    let error_msg = e.to_string();
-                    if error_msg.contains("line") {
-                        Error::ConfigSyntax(format!("TOML syntax error in {}: {}", path.display(), error_msg))
-                    } else {
-                        Error::ConfigSyntax(format!("Failed to parse profile file {}: {}", path.display(), error_msg))
-                    }
-                })?;
-            
+            let content = fs::read_to_string(&path).map_err(|e| {
+                Error::config_error(
+                    path.display().to_string(),
+                    format!("Failed to read profile file: {}", e),
+                )
+            })?;
+
+            let profile: LocationProfile = toml::from_str(&content).map_err(|e| {
+                let error_msg = e.to_string();
+                if error_msg.contains("line") {
+                    Error::ConfigSyntax(format!(
+                        "TOML syntax error in {}: {}",
+                        path.display(),
+                        error_msg
+                    ))
+                } else {
+                    Error::ConfigSyntax(format!(
+                        "Failed to parse profile file {}: {}",
+                        path.display(),
+                        error_msg
+                    ))
+                }
+            })?;
+
             // Check for duplicate profile names
             if !seen_names.insert(profile.name.clone()) {
                 return Err(Error::ConfigValidation(format!(
@@ -153,195 +163,182 @@ impl Config {
                     path.display()
                 )));
             }
-            
+
             profiles.insert(profile.name.clone(), profile);
         }
-        
+
         // Ensure at least one profile exists
         if profiles.is_empty() {
             return Err(Error::ConfigValidation(
-                "No profiles found. At least one profile is required.".to_string()
+                "No profiles found. At least one profile is required.".to_string(),
             ));
         }
-        
+
         Ok(profiles)
     }
-    
+
     /// Load active profile from state file
     fn load_active_profile(config_dir: &PathBuf) -> Result<String> {
         let state_path = config_dir.join("state.toml");
-        
+
         if !state_path.exists() {
             // Default to first available profile
             return Ok("home".to_string());
         }
-        
-        let content = fs::read_to_string(&state_path)
-            .map_err(|e| {
-                Error::config_error(
-                    state_path.display().to_string(),
-                    format!("Failed to read state file: {}", e)
-                )
-            })?;
-        
+
+        let content = fs::read_to_string(&state_path).map_err(|e| {
+            Error::config_error(
+                state_path.display().to_string(),
+                format!("Failed to read state file: {}", e),
+            )
+        })?;
+
         #[derive(Deserialize)]
         struct State {
             active_profile: String,
         }
-        
+
         let state: State = toml::from_str(&content)
-            .map_err(|e| {
-                Error::ConfigSyntax(format!("Failed to parse state file: {}", e))
-            })?;
-        
+            .map_err(|e| Error::ConfigSyntax(format!("Failed to parse state file: {}", e)))?;
+
         Ok(state.active_profile)
     }
-    
+
     /// Save active profile to state file
     pub fn save_active_profile(&self) -> Result<()> {
         let config_dir = Self::get_config_dir();
         let state_path = config_dir.join("state.toml");
-        
+
         #[derive(Serialize)]
         struct State {
             active_profile: String,
         }
-        
+
         let state = State {
             active_profile: self.active_profile.clone(),
         };
-        
-        let content = toml::to_string_pretty(&state)
-            .map_err(|e| {
-                Error::config_error(
-                    state_path.display().to_string(),
-                    format!("Failed to serialize state: {}", e)
-                )
-            })?;
-        
-        fs::write(&state_path, content)
-            .map_err(|e| {
-                Error::config_error(
-                    state_path.display().to_string(),
-                    format!("Failed to write state file: {}", e)
-                )
-            })?;
-        
+
+        let content = toml::to_string_pretty(&state).map_err(|e| {
+            Error::config_error(
+                state_path.display().to_string(),
+                format!("Failed to serialize state: {}", e),
+            )
+        })?;
+
+        fs::write(&state_path, content).map_err(|e| {
+            Error::config_error(
+                state_path.display().to_string(),
+                format!("Failed to write state file: {}", e),
+            )
+        })?;
+
         Ok(())
     }
 
     /// Save configuration to the XDG config directory
     pub fn save(&self) -> Result<()> {
         self.validate()?;
-        
+
         let config_dir = Self::get_config_dir();
         let config_path = config_dir.join("config.toml");
         let profiles_dir = config_dir.join("profiles");
-        
-        // Ensure the config and profiles directories exist
-        fs::create_dir_all(&config_dir)
-            .map_err(|e| {
-                Error::config_error(
-                    config_dir.display().to_string(),
-                    format!("Failed to create config directory: {}", e)
-                )
-            })?;
-        
-        fs::create_dir_all(&profiles_dir)
-            .map_err(|e| {
-                Error::config_error(
-                    profiles_dir.display().to_string(),
-                    format!("Failed to create profiles directory: {}", e)
-                )
-            })?;
 
-        let content = toml::to_string_pretty(self)
-            .map_err(|e| {
-                Error::config_error(
-                    config_path.display().to_string(),
-                    format!("Failed to serialize config: {}", e)
-                )
-            })?;
-        
+        // Ensure the config and profiles directories exist
+        fs::create_dir_all(&config_dir).map_err(|e| {
+            Error::config_error(
+                config_dir.display().to_string(),
+                format!("Failed to create config directory: {}", e),
+            )
+        })?;
+
+        fs::create_dir_all(&profiles_dir).map_err(|e| {
+            Error::config_error(
+                profiles_dir.display().to_string(),
+                format!("Failed to create profiles directory: {}", e),
+            )
+        })?;
+
+        let content = toml::to_string_pretty(self).map_err(|e| {
+            Error::config_error(
+                config_path.display().to_string(),
+                format!("Failed to serialize config: {}", e),
+            )
+        })?;
+
         // Write to temporary file first, then rename for atomic operation
         let temp_path = config_dir.join(".config.toml.tmp");
-        
-        fs::write(&temp_path, &content)
-            .map_err(|e| {
-                Error::config_error(
-                    temp_path.display().to_string(),
-                    format!("Failed to write temporary config file: {}", e)
-                )
-            })?;
-        
-        fs::rename(&temp_path, &config_path)
-            .map_err(|e| {
-                // Clean up temp file on error
-                let _ = fs::remove_file(&temp_path);
-                Error::config_error(
-                    config_path.display().to_string(),
-                    format!("Failed to save config file: {}", e)
-                )
-            })?;
-        
+
+        fs::write(&temp_path, &content).map_err(|e| {
+            Error::config_error(
+                temp_path.display().to_string(),
+                format!("Failed to write temporary config file: {}", e),
+            )
+        })?;
+
+        fs::rename(&temp_path, &config_path).map_err(|e| {
+            // Clean up temp file on error
+            let _ = fs::remove_file(&temp_path);
+            Error::config_error(
+                config_path.display().to_string(),
+                format!("Failed to save config file: {}", e),
+            )
+        })?;
+
         // Save all profiles
         for profile_name in self.profiles.keys() {
             self.save_profile(profile_name)?;
         }
-        
+
         // Save active profile state
         self.save_active_profile()?;
-        
+
         Ok(())
     }
-    
+
     /// Save a single profile to its own file
     pub fn save_profile(&self, profile_name: &str) -> Result<()> {
-        let profile = self.profiles.get(profile_name)
-            .ok_or_else(|| Error::ConfigValidation(format!("Profile '{}' not found", profile_name)))?;
-        
+        let profile = self.profiles.get(profile_name).ok_or_else(|| {
+            Error::ConfigValidation(format!("Profile '{}' not found", profile_name))
+        })?;
+
         let config_dir = Self::get_config_dir();
         let profiles_dir = config_dir.join("profiles");
-        
+
         // Ensure profiles directory exists
-        fs::create_dir_all(&profiles_dir)
-            .map_err(|e| {
-                Error::config_error(
-                    profiles_dir.display().to_string(),
-                    format!("Failed to create profiles directory: {}", e)
-                )
-            })?;
-        
+        fs::create_dir_all(&profiles_dir).map_err(|e| {
+            Error::config_error(
+                profiles_dir.display().to_string(),
+                format!("Failed to create profiles directory: {}", e),
+            )
+        })?;
+
         let profile_path = profiles_dir.join(format!("{}.toml", profile_name));
-        
-        let content = toml::to_string_pretty(profile)
-            .map_err(|e| {
-                Error::config_error(
-                    profile_path.display().to_string(),
-                    format!("Failed to serialize profile: {}", e)
-                )
-            })?;
-        
+
+        let content = toml::to_string_pretty(profile).map_err(|e| {
+            Error::config_error(
+                profile_path.display().to_string(),
+                format!("Failed to serialize profile: {}", e),
+            )
+        })?;
+
         // Write to temporary file first
         let temp_path = profiles_dir.join(format!(".{}.toml.tmp", profile_name));
-        
-        fs::write(&temp_path, &content)
-            .map_err(|e| {
-                Error::config_error(
-                    temp_path.display().to_string(),
-                    format!("Failed to write temporary profile file: {}", e)
-                )
-            })?;
-        
-        fs::rename(&temp_path, &profile_path)
-            .map_err(|e| {
-                let _ = fs::remove_file(&temp_path);
-                Error::config_error(
-                    profile_path.display().to_string(),
-                    format!("Failed to save profile file: {}", e)
-                )
-            })?;
-        
+
+        fs::write(&temp_path, &content).map_err(|e| {
+            Error::config_error(
+                temp_path.display().to_string(),
+                format!("Failed to write temporary profile file: {}", e),
+            )
+        })?;
+
+        fs::rename(&temp_path, &profile_path).map_err(|e| {
+            let _ = fs::remove_file(&temp_path);
+            Error::config_error(
+                profile_path.display().to_string(),
+                format!("Failed to save profile file: {}", e),
+            )
+        })?;
+
         Ok(())
     }
 
@@ -350,7 +347,7 @@ impl Config {
         // Check that profiles is not empty
         if self.profiles.is_empty() {
             return Err(Error::ConfigValidation(
-                "Configuration must have at least one profile".to_string()
+                "Configuration must have at least one profile".to_string(),
             ));
         }
 
@@ -400,13 +397,17 @@ impl Config {
                 if schedule.hour > 23 {
                     return Err(Error::ConfigValidation(format!(
                         "Profile '{}', schedule #{}: Invalid hour {} (must be 0-23)",
-                        name, idx + 1, schedule.hour
+                        name,
+                        idx + 1,
+                        schedule.hour
                     )));
                 }
                 if schedule.minute > 59 {
                     return Err(Error::ConfigValidation(format!(
                         "Profile '{}', schedule #{}: Invalid minute {} (must be 0-59)",
-                        name, idx + 1, schedule.minute
+                        name,
+                        idx + 1,
+                        schedule.minute
                     )));
                 }
                 // Note: brightness validation is hardware-specific, so we don't validate it here
@@ -425,10 +426,10 @@ impl Config {
                 let home = std::env::var("HOME").expect("HOME environment variable not set");
                 PathBuf::from(home).join(".config")
             });
-        
+
         config_dir.join("kbd-backlight")
     }
-    
+
     /// Build WiFi SSID to profile name mapping from all profiles
     pub fn build_location_mappings(&self) -> HashMap<String, String> {
         let mut mappings = HashMap::new();
@@ -444,7 +445,7 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         let mut profiles = HashMap::new();
-        
+
         // Create a default "home" profile
         profiles.insert(
             "home".to_string(),
@@ -481,12 +482,17 @@ impl Default for Config {
 mod tests {
     use super::*;
     use std::env;
+    use std::sync::Mutex;
     use tempfile::TempDir;
 
-    fn setup_test_env() -> TempDir {
+    // Mutex to serialize tests that modify environment variables
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
+
+    fn setup_test_env() -> (TempDir, std::sync::MutexGuard<'static, ()>) {
+        let guard = ENV_MUTEX.lock().unwrap();
         let temp_dir = TempDir::new().unwrap();
         env::set_var("XDG_CONFIG_HOME", temp_dir.path());
-        temp_dir
+        (temp_dir, guard)
     }
 
     #[test]
@@ -499,11 +505,11 @@ mod tests {
 
     #[test]
     fn test_config_save_and_load() {
-        let _temp_dir = setup_test_env();
-        
+        let (_temp_dir, _guard) = setup_test_env();
+
         let config = Config::default();
         assert!(config.save().is_ok());
-        
+
         let loaded_config = Config::load().unwrap();
         assert_eq!(loaded_config.active_profile, config.active_profile);
         assert_eq!(loaded_config.profiles.len(), config.profiles.len());
@@ -515,10 +521,13 @@ mod tests {
             active_profile: "nonexistent".to_string(),
             ..Default::default()
         };
-        
+
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not found in profiles"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("not found in profiles"));
     }
 
     #[test]
@@ -531,7 +540,7 @@ mod tests {
                 brightness: 2,
             });
         }
-        
+
         let result = config.validate();
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Invalid hour"));
@@ -547,7 +556,7 @@ mod tests {
                 brightness: 2,
             });
         }
-        
+
         let result = config.validate();
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Invalid minute"));
@@ -555,13 +564,13 @@ mod tests {
 
     #[test]
     fn test_toml_serialization() {
-        let _temp_dir = setup_test_env();
+        let (_temp_dir, _guard) = setup_test_env();
         let config = Config::default();
-        
+
         // Save and reload to test serialization
         assert!(config.save().is_ok());
         let loaded = Config::load().unwrap();
-        
+
         assert_eq!(config.active_profile, loaded.active_profile);
         assert_eq!(config.auto_switch_location, loaded.auto_switch_location);
     }
@@ -569,7 +578,7 @@ mod tests {
     #[test]
     fn test_multiple_profiles() {
         let mut config = Config::default();
-        
+
         config.profiles.insert(
             "office".to_string(),
             LocationProfile {
@@ -578,16 +587,14 @@ mod tests {
                 video_detection_enabled: true,
                 wifi_networks: vec![],
                 ac_always_on: false,
-                time_schedules: vec![
-                    TimeSchedule {
-                        hour: 8,
-                        minute: 0,
-                        brightness: 3,
-                    },
-                ],
+                time_schedules: vec![TimeSchedule {
+                    hour: 8,
+                    minute: 0,
+                    brightness: 3,
+                }],
             },
         );
-        
+
         assert!(config.validate().is_ok());
         assert_eq!(config.profiles.len(), 2);
     }
@@ -595,7 +602,7 @@ mod tests {
     #[test]
     fn test_profile_independence() {
         let mut config = Config::default();
-        
+
         // Add a second profile with different settings
         config.profiles.insert(
             "office".to_string(),
@@ -605,21 +612,19 @@ mod tests {
                 video_detection_enabled: true,
                 wifi_networks: vec![],
                 ac_always_on: false,
-                time_schedules: vec![
-                    TimeSchedule {
-                        hour: 8,
-                        minute: 0,
-                        brightness: 3,
-                    },
-                ],
+                time_schedules: vec![TimeSchedule {
+                    hour: 8,
+                    minute: 0,
+                    brightness: 3,
+                }],
             },
         );
-        
+
         // Verify home profile is unchanged
         let home = config.profiles.get("home").unwrap();
         assert_eq!(home.idle_timeout, 30);
         assert_eq!(home.time_schedules.len(), 2);
-        
+
         // Verify office profile has its own settings
         let office = config.profiles.get("office").unwrap();
         assert_eq!(office.idle_timeout, 5);
@@ -630,7 +635,7 @@ mod tests {
     #[test]
     fn test_profile_switching() {
         let mut config = Config::default();
-        
+
         // Add office profile
         config.profiles.insert(
             "office".to_string(),
@@ -643,15 +648,15 @@ mod tests {
                 time_schedules: vec![],
             },
         );
-        
+
         // Initially on home profile
         assert_eq!(config.active_profile, "home");
-        
+
         // Switch to office profile
         config.active_profile = "office".to_string();
         assert_eq!(config.active_profile, "office");
         assert!(config.validate().is_ok());
-        
+
         // Verify we can access the active profile's settings
         let active = config.profiles.get(&config.active_profile).unwrap();
         assert_eq!(active.idle_timeout, 5);
@@ -659,10 +664,10 @@ mod tests {
 
     #[test]
     fn test_profile_persistence() {
-        let _temp_dir = setup_test_env();
-        
+        let (_temp_dir, _guard) = setup_test_env();
+
         let mut config = Config::default();
-        
+
         // Add office profile
         config.profiles.insert(
             "office".to_string(),
@@ -675,13 +680,13 @@ mod tests {
                 time_schedules: vec![],
             },
         );
-        
+
         // Switch to office profile
         config.active_profile = "office".to_string();
-        
+
         // Save everything (profiles and state)
         assert!(config.save().is_ok());
-        
+
         // Load config and verify active profile persisted
         let loaded = Config::load().unwrap();
         assert_eq!(loaded.active_profile, "office");

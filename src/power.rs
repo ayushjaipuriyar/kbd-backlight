@@ -1,7 +1,7 @@
 // Power state detection (AC vs Battery)
+use crate::{Error, Result};
 use std::fs;
 use std::path::Path;
-use crate::{Result, Error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PowerState {
@@ -21,19 +21,18 @@ impl PowerDetector {
     pub fn get_power_state(&self) -> Result<PowerState> {
         // Check /sys/class/power_supply/
         let power_supply_path = Path::new("/sys/class/power_supply");
-        
+
         if !power_supply_path.exists() {
             return Ok(PowerState::Unknown);
         }
 
         // Look for AC adapter
-        let entries = fs::read_dir(power_supply_path)
-            .map_err(Error::Io)?;
+        let entries = fs::read_dir(power_supply_path).map_err(Error::Io)?;
 
         for entry in entries {
             let entry = entry.map_err(Error::Io)?;
             let path = entry.path();
-            
+
             // Check if this is an AC adapter
             let type_file = path.join("type");
             if let Ok(device_type) = fs::read_to_string(&type_file) {
@@ -53,13 +52,12 @@ impl PowerDetector {
         }
 
         // Fallback: check battery status
-        let entries = fs::read_dir(power_supply_path)
-            .map_err(Error::Io)?;
+        let entries = fs::read_dir(power_supply_path).map_err(Error::Io)?;
 
         for entry in entries {
             let entry = entry.map_err(Error::Io)?;
             let path = entry.path();
-            
+
             let type_file = path.join("type");
             if let Ok(device_type) = fs::read_to_string(&type_file) {
                 if device_type.trim() == "Battery" {

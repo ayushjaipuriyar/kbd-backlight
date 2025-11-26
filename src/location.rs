@@ -1,6 +1,6 @@
 // Location detection using WiFi SSID
+use crate::{Error, Result};
 use std::process::Command;
-use crate::{Result, Error};
 
 pub struct LocationDetector;
 
@@ -36,7 +36,7 @@ impl LocationDetector {
         }
 
         let output_str = String::from_utf8_lossy(&output.stdout);
-        
+
         // Find the active connection
         for line in output_str.lines() {
             if line.starts_with("yes:") {
@@ -59,7 +59,7 @@ impl LocationDetector {
             .map_err(|e| Error::Io(e))?;
 
         let interface = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        
+
         if interface.is_empty() {
             return Err(Error::Parse("No wireless interface found".to_string()));
         }
@@ -75,7 +75,7 @@ impl LocationDetector {
         }
 
         let output_str = String::from_utf8_lossy(&output.stdout);
-        
+
         for line in output_str.lines() {
             if line.trim().starts_with("SSID:") {
                 let ssid = line.split(':').nth(1).unwrap_or("").trim();

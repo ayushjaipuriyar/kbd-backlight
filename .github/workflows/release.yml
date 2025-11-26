@@ -31,12 +31,7 @@ jobs:
             artifact_name: kbd-backlight-linux-aarch64
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install dependencies (Ubuntu)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libdbus-1-dev libwayland-dev libx11-dev libxss-dev
+        uses: actions/checkout@v6
 
       - name: Install semantic-release-cargo
         uses: taiki-e/install-action@v2
@@ -51,14 +46,25 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cross-compilation tools
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
+      - name: Install dependencies for native build
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev libwayland-dev libx11-dev libxss-dev
 
-      - name: Build release binaries
+      - name: Install cross for cross-compilation
+        if: matrix.target != 'x86_64-unknown-linux-gnu'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Build release binaries (native)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Build release binaries (cross)
+        if: matrix.target != 'x86_64-unknown-linux-gnu'
+        run: cross build --release --target ${{ matrix.target }}
 
       - name: Create tarball
         run: |
@@ -70,7 +76,7 @@ jobs:
           tar -czf ${{ matrix.artifact_name }}.tar.gz -C release .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.artifact_name }}.tar.gz
@@ -82,13 +88,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 'lts/*'
 
@@ -112,7 +118,7 @@ jobs:
             conventional-changelog-conventionalcommits
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           path: artifacts
 
@@ -174,12 +180,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: main
 
       - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v2.7.0
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
         with:
           pkgname: kbd-backlight
           pkgbuild: ./PKGBUILD

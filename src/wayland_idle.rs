@@ -23,7 +23,7 @@ impl WaylandIdleDetector {
     pub fn new(timeout_seconds: u64) -> Self {
         let is_idle = Arc::new(Mutex::new(false));
         let last_activity = Arc::new(Mutex::new(Instant::now()));
-        
+
         let detector = Self {
             is_idle: Arc::clone(&is_idle),
             last_activity: Arc::clone(&last_activity),
@@ -36,7 +36,8 @@ impl WaylandIdleDetector {
         let timeout_ms = (timeout_seconds * 1000) as u32;
 
         thread::spawn(move || {
-            if let Err(e) = Self::monitor_idle_state(is_idle_clone, last_activity_clone, timeout_ms) {
+            if let Err(e) = Self::monitor_idle_state(is_idle_clone, last_activity_clone, timeout_ms)
+            {
                 eprintln!("Wayland idle monitor thread error: {}", e);
             }
         });
@@ -51,8 +52,8 @@ impl WaylandIdleDetector {
         timeout_ms: u32,
     ) -> Result<(), String> {
         // Connect to Wayland
-        let mut conn = Connection::connect()
-            .map_err(|e| format!("Failed to connect to Wayland: {}", e))?;
+        let mut conn =
+            Connection::connect().map_err(|e| format!("Failed to connect to Wayland: {}", e))?;
 
         let mut state = IdleState {
             is_idle: Arc::clone(&is_idle),
@@ -84,16 +85,21 @@ impl WaylandIdleDetector {
             .map_err(|e| format!("Failed to bind idle notifier: {}", e))?;
 
         // Register idle notification
-        idle_notifier.get_idle_notification_with_cb(&mut conn, timeout_ms, seat, idle_notification_cb);
+        idle_notifier.get_idle_notification_with_cb(
+            &mut conn,
+            timeout_ms,
+            seat,
+            idle_notification_cb,
+        );
 
         // Main event loop - keep connection alive and process events
         loop {
             conn.flush(IoMode::Blocking)
                 .map_err(|e| format!("Failed to flush: {}", e))?;
-            
+
             conn.recv_events(IoMode::Blocking)
                 .map_err(|e| format!("Failed to receive events: {}", e))?;
-            
+
             conn.dispatch_events(&mut state);
         }
     }
@@ -106,7 +112,7 @@ impl WaylandIdleDetector {
     /// Get idle time duration
     pub fn get_idle_time(&self) -> Result<Duration, String> {
         let is_idle = *self.is_idle.lock().unwrap();
-        
+
         if is_idle {
             // Calculate how long we've been idle
             let last_activity = *self.last_activity.lock().unwrap();
