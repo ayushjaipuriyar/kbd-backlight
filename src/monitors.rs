@@ -365,6 +365,52 @@ impl FullscreenMonitor {
     }
 }
 
+pub struct LocationMonitor {
+    detector: LocationDetector,
+}
+
+impl Default for LocationMonitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl LocationMonitor {
+    pub fn new() -> Self {
+        Self {
+            detector: LocationDetector::new(),
+        }
+    }
+
+    /// Get current WiFi SSID
+    pub fn get_current_ssid(&self) -> Result<Option<String>> {
+        self.detector.get_current_ssid()
+    }
+}
+
+pub struct PowerMonitor {
+    detector: PowerDetector,
+}
+
+impl Default for PowerMonitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PowerMonitor {
+    pub fn new() -> Self {
+        Self {
+            detector: PowerDetector::new(),
+        }
+    }
+
+    /// Get current power state (AC/Battery/Unknown)
+    pub fn get_power_state(&self) -> Result<PowerState> {
+        self.detector.get_power_state()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -483,39 +529,5 @@ mod tests {
                 }
             }
         }
-    }
-}
-
-pub struct LocationMonitor {
-    detector: LocationDetector,
-}
-
-impl LocationMonitor {
-    pub fn new() -> Self {
-        Self {
-            detector: LocationDetector::new(),
-        }
-    }
-
-    /// Get current WiFi SSID
-    pub fn get_current_ssid(&self) -> Result<Option<String>> {
-        self.detector.get_current_ssid()
-    }
-}
-
-pub struct PowerMonitor {
-    detector: PowerDetector,
-}
-
-impl PowerMonitor {
-    pub fn new() -> Self {
-        Self {
-            detector: PowerDetector::new(),
-        }
-    }
-
-    /// Get current power state (AC/Battery/Unknown)
-    pub fn get_power_state(&self) -> Result<PowerState> {
-        self.detector.get_power_state()
     }
 }

@@ -12,6 +12,12 @@ pub enum PowerState {
 
 pub struct PowerDetector;
 
+impl Default for PowerDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PowerDetector {
     pub fn new() -> Self {
         Self

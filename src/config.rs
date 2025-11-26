@@ -5,7 +5,7 @@ use crate::{Error, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -91,7 +91,7 @@ impl Config {
     }
 
     /// Load all profile files from the profiles directory
-    fn load_profiles(config_dir: &PathBuf) -> Result<HashMap<String, LocationProfile>> {
+    fn load_profiles(config_dir: &Path) -> Result<HashMap<String, LocationProfile>> {
         let profiles_dir = config_dir.join("profiles");
 
         // Create profiles directory if it doesn't exist
@@ -178,7 +178,7 @@ impl Config {
     }
 
     /// Load active profile from state file
-    fn load_active_profile(config_dir: &PathBuf) -> Result<String> {
+    fn load_active_profile(config_dir: &Path) -> Result<String> {
         let state_path = config_dir.join("state.toml");
 
         if !state_path.exists() {

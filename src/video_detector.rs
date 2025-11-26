@@ -94,9 +94,9 @@ impl VideoDetector {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_video_detector_creation() {
+    #[tokio::test]
+    async fn test_video_detector_creation() {
         // This might fail in test environment without D-Bus
-        let _ = VideoDetector::new();
+        let _ = VideoDetector::new().await;
     }
 }

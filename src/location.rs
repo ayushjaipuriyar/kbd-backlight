@@ -4,6 +4,12 @@ use std::process::Command;
 
 pub struct LocationDetector;
 
+impl Default for LocationDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LocationDetector {
     pub fn new() -> Self {
         Self
@@ -27,9 +33,9 @@ impl LocationDetector {
 
     fn get_ssid_nmcli(&self) -> Result<String> {
         let output = Command::new("nmcli")
-            .args(&["-t", "-f", "active,ssid", "dev", "wifi"])
+            .args(["-t", "-f", "active,ssid", "dev", "wifi"])
             .output()
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
 
         if !output.status.success() {
             return Err(Error::Parse("nmcli command failed".to_string()));
@@ -56,7 +62,7 @@ impl LocationDetector {
             .arg("-c")
             .arg("iw dev | grep Interface | awk '{print $2}'")
             .output()
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
 
         let interface = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
@@ -66,9 +72,9 @@ impl LocationDetector {
 
         // Get SSID for the interface
         let output = Command::new("iw")
-            .args(&["dev", &interface, "link"])
+            .args(["dev", &interface, "link"])
             .output()
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
 
         if !output.status.success() {
             return Err(Error::Parse("iw command failed".to_string()));

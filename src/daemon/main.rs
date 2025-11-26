@@ -198,11 +198,12 @@ impl Daemon {
             .get_power_state()
             .unwrap_or(PowerState::Unknown);
 
-        // Get profile idle timeout
-        let config = self.config.read().unwrap();
-        let profile = config.profiles.get(&config.active_profile).unwrap();
-        let idle_timeout = profile.idle_timeout;
-        drop(config);
+        // Get profile idle timeout and video detection settings
+        let (idle_timeout, video_detection_enabled, ac_always_on) = {
+            let config = self.config.read().unwrap();
+            let profile = config.profiles.get(&config.active_profile).unwrap();
+            (profile.idle_timeout, profile.video_detection_enabled, profile.ac_always_on)
+        };
 
         // Update idle monitor timeout only if changed (to avoid file descriptor leak)
         let current_timeout = *self.current_idle_timeout.read().unwrap();
@@ -225,11 +226,6 @@ impl Daemon {
         };
 
         // Check video playback state (replaces fullscreen for video detection)
-        let config = self.config.read().unwrap();
-        let profile = config.profiles.get(&config.active_profile).unwrap();
-        let video_detection_enabled = profile.video_detection_enabled;
-        drop(config);
-
         let is_video_playing = if video_detection_enabled {
             if let Some(ref detector) = self.video_detector {
                 detector.is_video_playing().await.unwrap_or(false)
@@ -262,12 +258,6 @@ impl Daemon {
         // Evaluate rules
         let decision = self.rule_engine.read().unwrap().evaluate(&context);
         let has_manual_override = self.rule_engine.read().unwrap().manual_override.is_some();
-
-        // Get ac_always_on setting from profile
-        let config = self.config.read().unwrap();
-        let profile = config.profiles.get(&config.active_profile).unwrap();
-        let ac_always_on = profile.ac_always_on;
-        drop(config);
 
         // Apply brightness decision with optional AC power handling
         if let kbd_backlight::rules::BrightnessDecision::SetBrightness(mut brightness) = decision {
