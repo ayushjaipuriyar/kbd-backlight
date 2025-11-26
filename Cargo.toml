@@ -2,6 +2,12 @@
 name = "kbd-backlight"
 version = "0.1.0"
 edition = "2021"
+authors = ["Ayush Jaipuriyar"]
+description = "Intelligent keyboard backlight daemon for Linux laptops with automatic brightness control"
+repository = "https://github.com/ayushjaipuriyar/kbd-backlight"
+license = "MIT"
+keywords = ["keyboard", "backlight", "daemon", "linux", "brightness"]
+categories = ["command-line-utilities", "os::linux-apis"]
 
 [[bin]]
 name = "kbd-backlight-daemon"

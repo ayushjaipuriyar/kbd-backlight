@@ -1,5 +1,10 @@
 # kbd-backlight
 
+[![CI](https://github.com/ayushjaipuriyar/kbd-backlight/workflows/CI/badge.svg)](https://github.com/ayushjaipuriyar/kbd-backlight/actions/workflows/ci.yml)
+[![Release](https://github.com/ayushjaipuriyar/kbd-backlight/workflows/Release/badge.svg)](https://github.com/ayushjaipuriyar/kbd-backlight/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Crates.io](https://img.shields.io/crates/v/kbd-backlight.svg)](https://crates.io/crates/kbd-backlight)
+
 Intelligent keyboard backlight daemon for Linux laptops with automatic brightness control based on idle time, video playback, power state, WiFi location, and time schedules.
 
 ## Features
@@ -43,7 +48,7 @@ sudo pacman -S base-devel dbus wayland libx11 libxss
 
 **Build and install:**
 ```bash
-git clone https://github.com/yourusername/kbd-backlight.git
+git clone https://github.com/ayushjaipuriyar/kbd-backlight.git
 cd kbd-backlight
 cargo build --release
 sudo cp target/release/kbd-backlight /usr/local/bin/

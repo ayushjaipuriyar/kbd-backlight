@@ -1,10 +1,10 @@
-# Maintainer: Your Name <your.email@example.com>
+# Maintainer: Ayush Jaipuriyar <ayushjaipuriyar@gmail.com>
 pkgname=kbd-backlight
 pkgver=0.1.0
 pkgrel=1
 pkgdesc="Intelligent keyboard backlight daemon with automatic brightness control"
 arch=('x86_64' 'aarch64')
-url="https://github.com/yourusername/kbd-backlight"
+url="https://github.com/ayushjaipuriyar/kbd-backlight"
 license=('MIT')
 depends=('dbus' 'wayland' 'libx11' 'libxss')
 makedepends=('rust' 'cargo')

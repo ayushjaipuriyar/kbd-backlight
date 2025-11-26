@@ -1,6 +1,6 @@
 [Unit]
 Description=Keyboard Backlight Daemon
-Documentation=https://github.com/yourusername/kbd-backlight
+Documentation=https://github.com/ayushjaipuriyar/kbd-backlight
 After=graphical-session.target
 
 [Service]

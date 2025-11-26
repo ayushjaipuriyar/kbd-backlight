@@ -14,7 +14,7 @@ Thank you for your interest in contributing! This document provides guidelines a
 ### Building from Source
 
 ```bash
-git clone https://github.com/yourusername/kbd-backlight.git
+git clone https://github.com/ayushjaipuriyar/kbd-backlight.git
 cd kbd-backlight
 cargo build
 ```

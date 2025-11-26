@@ -20,26 +20,28 @@ Use this checklist before creating the first release.
 - [x] Example configurations provided
 
 ### Repository Setup
-- [ ] Update repository URL in all files:
-  - [ ] README.md
-  - [ ] Cargo.toml
-  - [ ] PKGBUILD
-  - [ ] CONTRIBUTING.md
-  - [ ] GitHub workflows
-- [ ] Update maintainer information in PKGBUILD
-- [ ] Verify LICENSE file is correct
+- [x] Update repository URL in all files:
+  - [x] README.md
+  - [x] Cargo.toml
+  - [x] PKGBUILD
+  - [x] CONTRIBUTING.md
+  - [x] GitHub workflows
+- [x] Update maintainer information in PKGBUILD
+- [x] Verify LICENSE file is correct
+- [x] Add Dependabot configuration
+- [x] Add CI/CD badges to README
 
 ### GitHub Configuration
-- [ ] Repository created on GitHub
-- [ ] Repository description set
-- [ ] Topics/tags added (rust, linux, keyboard, backlight, daemon)
-- [ ] Default branch set to `main`
+- [x] Repository created on GitHub
+- [x] Repository description set
+- [x] Topics/tags added (rust, linux, keyboard, backlight, daemon)
+- [x] Default branch set to `main`
 - [ ] Branch protection rules configured (optional)
 
 ### GitHub Secrets
-- [ ] `AUR_USERNAME` - Your AUR username
-- [ ] `AUR_EMAIL` - Your AUR email  
-- [ ] `AUR_SSH_PRIVATE_KEY` - SSH key for AUR access
+- [x] `AUR_USERNAME` - Your AUR username
+- [x] `AUR_EMAIL` - Your AUR email  
+- [x] `AUR_SSH_PRIVATE_KEY` - SSH key for AUR access
 
 ### AUR Setup
 - [ ] AUR account created
