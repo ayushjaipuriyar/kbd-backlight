@@ -482,12 +482,17 @@ impl Default for Config {
 mod tests {
     use super::*;
     use std::env;
+    use std::sync::Mutex;
     use tempfile::TempDir;
 
-    fn setup_test_env() -> TempDir {
+    // Mutex to serialize tests that modify environment variables
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
+
+    fn setup_test_env() -> (TempDir, std::sync::MutexGuard<'static, ()>) {
+        let guard = ENV_MUTEX.lock().unwrap();
         let temp_dir = TempDir::new().unwrap();
         env::set_var("XDG_CONFIG_HOME", temp_dir.path());
-        temp_dir
+        (temp_dir, guard)
     }
 
     #[test]
@@ -500,7 +505,7 @@ mod tests {
 
     #[test]
     fn test_config_save_and_load() {
-        let _temp_dir = setup_test_env();
+        let (_temp_dir, _guard) = setup_test_env();
 
         let config = Config::default();
         assert!(config.save().is_ok());
@@ -559,7 +564,7 @@ mod tests {
 
     #[test]
     fn test_toml_serialization() {
-        let _temp_dir = setup_test_env();
+        let (_temp_dir, _guard) = setup_test_env();
         let config = Config::default();
 
         // Save and reload to test serialization
@@ -659,7 +664,7 @@ mod tests {
 
     #[test]
     fn test_profile_persistence() {
-        let _temp_dir = setup_test_env();
+        let (_temp_dir, _guard) = setup_test_env();
 
         let mut config = Config::default();
 
