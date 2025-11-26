@@ -1,0 +1,11 @@
+[build.env]
+passthrough = [
+    "CARGO_TERM_COLOR",
+]
+
+[target.aarch64-unknown-linux-gnu]
+pre-build = [
+    "dpkg --add-architecture arm64",
+    "apt-get update",
+    "apt-get install -y libdbus-1-dev:arm64 libwayland-dev:arm64 libx11-dev:arm64 libxss-dev:arm64",
+]
