@@ -202,7 +202,11 @@ impl Daemon {
         let (idle_timeout, video_detection_enabled, ac_always_on) = {
             let config = self.config.read().unwrap();
             let profile = config.profiles.get(&config.active_profile).unwrap();
-            (profile.idle_timeout, profile.video_detection_enabled, profile.ac_always_on)
+            (
+                profile.idle_timeout,
+                profile.video_detection_enabled,
+                profile.ac_always_on,
+            )
         };
 
         // Update idle monitor timeout only if changed (to avoid file descriptor leak)
