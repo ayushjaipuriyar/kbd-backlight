@@ -1,6 +1,6 @@
 [package]
 name = "kbd-backlight"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["Ayush Jaipuriyar"]
 description = "Intelligent keyboard backlight daemon for Linux laptops with automatic brightness control"

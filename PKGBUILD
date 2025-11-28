@@ -1,6 +1,6 @@
 # Maintainer: Ayush Jaipuriyar <ayushjaipuriyar@gmail.com>
 pkgname=kbd-backlight
-pkgver=0.1.0
+pkgver=1.0.0
 pkgrel=1
 pkgdesc="Intelligent keyboard backlight daemon with automatic brightness control"
 arch=('x86_64' 'aarch64')
