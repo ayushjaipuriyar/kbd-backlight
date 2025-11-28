@@ -3,7 +3,6 @@
 [![CI](https://github.com/ayushjaipuriyar/kbd-backlight/workflows/CI/badge.svg)](https://github.com/ayushjaipuriyar/kbd-backlight/actions/workflows/ci.yml)
 [![Release](https://github.com/ayushjaipuriyar/kbd-backlight/workflows/Release/badge.svg)](https://github.com/ayushjaipuriyar/kbd-backlight/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![semantic-release: rust](https://img.shields.io/badge/semantic--release-rust-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
 
 Intelligent keyboard backlight daemon for Linux laptops with automatic brightness control based on idle time, video playback, power state, WiFi location, and time schedules.
 
