@@ -37,4 +37,4 @@ regex = "1.10"
 
 [dev-dependencies]
 proptest = "1.4"
-tempfile = "3.8"
+tempfile = "3.24"
