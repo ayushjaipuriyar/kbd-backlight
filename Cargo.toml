@@ -32,7 +32,7 @@ thiserror = "2.0"
 wayrs-client = "1.2"
 wayrs-protocols = { version = "0.14", features = ["ext-idle-notify-v1"] }
 wayrs-utils = { version = "0.17", features = ["seats"] }
-zbus = { version = "5.12", default-features = false, features = ["tokio", "blocking"] }
+zbus = { version = "5.13", default-features = false, features = ["tokio", "blocking"] }
 regex = "1.10"
 
 [dev-dependencies]
