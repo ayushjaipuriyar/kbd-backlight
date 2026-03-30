@@ -23,7 +23,7 @@ serde = { version = "1.0", features = ["derive"] }
 toml = "0.9"
 clap = { version = "4.6", features = ["derive"] }
 x11rb = { version = "0.13", features = ["allow-unsafe-code", "screensaver"] }
-proptest = "1.10"
+proptest = "1.11"
 nix = { version = "0.31.2", features = ["user", "signal"] }
 chrono = "0.4"
 serde_json = "1.0"
@@ -36,5 +36,5 @@ zbus = { version = "5.14", default-features = false, features = ["tokio", "block
 regex = "1.12"
 
 [dev-dependencies]
-proptest = "1.10"
+proptest = "1.11"
 tempfile = "3.27"
