@@ -18,7 +18,7 @@ name = "kbd-backlight"
 path = "src/cli/main.rs"
 
 [dependencies]
-tokio = { version = "1.51", features = ["full"] }
+tokio = { version = "1.52", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.9"
 clap = { version = "4.6", features = ["derive"] }
@@ -32,7 +32,7 @@ thiserror = "2.0"
 wayrs-client = "1.2"
 wayrs-protocols = { version = "0.14", features = ["ext-idle-notify-v1"] }
 wayrs-utils = { version = "0.17", features = ["seats"] }
-zbus = { version = "5.14", default-features = false, features = ["tokio", "blocking"] }
+zbus = { version = "5.15", default-features = false, features = ["tokio", "blocking"] }
 regex = "1.12"
 
 [dev-dependencies]
